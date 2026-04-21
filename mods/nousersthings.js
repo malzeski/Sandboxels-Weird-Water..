@@ -3612,9 +3612,9 @@ elements.instant_wire = {
         if (pixel.cooldown > 0){pixel.cooldown -= 1}
         if (pixel.cooldown < 4){pixel.iCharge = 0}
         if (pixel.cooldown == 0){
-            for (let i of adjacentCoords){
-                let x = pixel.x + i[0]
-                let y = pixel.y + i[1]
+            for (let i in adjacentCoords){
+                let x = pixel.x + adjacentCoords[i][0]
+                let y = pixel.y + adjacentCoords[i][1]
                 if (!isEmpty(x, y, true)){
                     let otherPixel = pixelMap[x][y]
                     if (otherPixel.charge){
