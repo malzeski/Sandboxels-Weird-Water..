@@ -3599,7 +3599,7 @@ tryMove = function(...args){
     }
 }
 elements.instant_wire = {
-    color: "#27382d",
+    color: "#8ec7a2",
     behavior: behaviors.WALL,
     category: "machines",
     properties: {
@@ -3609,8 +3609,8 @@ elements.instant_wire = {
     },
     iConduct: 1,
     tick: function(pixel){
-        if (pixel.cooldown > 0){pixel.cooldown -= 1}
-        if (pixel.cooldown < 4){pixel.iCharge = 0}
+        if (pixel.cooldown > 0 && pixel.lastUpdate != pixelTicks){pixel.cooldown -= 1}
+        if (pixel.cooldown < 5){pixel.iCharge = 0}
         if (pixel.cooldown == 0){
             for (let i in adjacentCoords){
                 let x = pixel.x + adjacentCoords[i][0]
@@ -3627,7 +3627,7 @@ elements.instant_wire = {
     },
     iCharge: function(pixel, otherPixel){
         pixel.iCharge = 1
-        pixel.cooldown = 8
+        pixel.cooldown = 10
         pixel.lastUpdate = pixelTicks
         for (let i of adjacentCoords){
             let x = pixel.x + i[0]
