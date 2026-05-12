@@ -3690,7 +3690,7 @@ elements.iwifi_transmitter = {
     },
     iCharge: function(pixel, otherPixel){
         let wifipixels = currentPixels.filter(function(pixelToCheck) {
-            if (pixelToCheck.element == "iwifi_receiver" && pixelToCheck.channel == pixel.channel){
+            if (pixelToCheck.element == "iwifi_receiver" && pixelToCheck.channel === pixel.channel){
                 return true;
             }
         })
@@ -3714,6 +3714,7 @@ elements.iwifi_receiver = {
         }
     },
     iCharge: function(pixel, otherPixel){
+        pixel.lastUpdate = pixelTicks;
         for (let i of adjacentCoords){
             let x = pixel.x + i[0]
             let y = pixel.y + i[1]
