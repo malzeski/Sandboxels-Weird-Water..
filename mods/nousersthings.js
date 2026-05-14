@@ -3756,7 +3756,7 @@ elements.iswitch = {
     behavior: behaviors.WALL,
     properties: {lastUpdate: 0, cooldown: 1, dir: [0, 0], iCharge:0},
     tick: function(pixel){
-        if (pixel.iCharge){
+        if (pixel.iCharge === 1){
             let x = pixel.x - pixel.dir[0]
             let y = pixel.y - pixel.dir[1]
             if (!isEmpty(x, y, true)){
@@ -3771,8 +3771,8 @@ elements.iswitch = {
         }
     },
     iCharge: function(pixel, otherPixel){
-        if (pixel.dir[0] != 0 || pixel.dir[1] != 0 && otherPixel.x-pixel.x !== pixel.dir[0] && otherPixel.y-pixel.y !== pixel.dir[1]){return;}
-        pixel.dir = [otherPixel.x-pixel.x, otherPixel.y-pixel.y]
-        pixel.iCharge = pixel.iCharge == 1 ? 0 : 1
+        if (pixel.dir[0] != 0 || pixel.dir[1] != 0){pixel.iCharge = pixel.iCharge == 1 ? 0 : 1} else {
+            pixel.dir = [otherPixel.x-pixel.x, otherPixel.y-pixel.y]
+        }
     }
 }
