@@ -1,8 +1,4 @@
 // Bismuth is the best element
-/*
-X rename global heat conductor to heat portal, add channels
-X heat pipe, smart variant
-*/
 async function _nousersthingsprompt(message, defaultValue = "") { // thanks to ggod for updated prompt function
     return new Promise(resolve => {
         promptInput(message, (result) => {
@@ -2084,7 +2080,7 @@ elements.ray_emitter = {
                                 pixelMap[lx][ly].rColor = pixel.color
                                 pixelMap[lx][ly].color = pixel.color
                             }
-                            if (["pointer", "flash", "explosion"].includes(pixel.rayElement)){
+                            if (["pointer", "flash", "explosion", "fire", "laser"].includes(pixel.rayElement)){
                                 pixelMap[lx][ly].color = pixel.color
                             }
                         } else if (!isEmpty(lx, ly, true)){
@@ -2132,9 +2128,9 @@ elements.ray = {
         }
         pixel.life -= 1
         if (pixel.life < pixel.maxLife){
-            pixel.color = "rgba("+pixel.rgb[0]+","+pixel.rgb[1]+","+pixel.rgb[2]+")"
+            pixel.color = "rgb("+pixel.rgb[0]+","+pixel.rgb[1]+","+pixel.rgb[2]+")"
             pixel.alpha = (pixel.life/pixel.maxLife)
-        } else {pixel.color = "rgba("+pixel.rgb[0]+","+pixel.rgb[1]+","+pixel.rgb[2]+",1)"}
+        } else {pixel.color = "rgb("+pixel.rgb[0]+","+pixel.rgb[1]+","+pixel.rgb[2]+")"}
         // lightmap.js integration
         if (enabledMods.includes("mods/lightmap.js")){
             let x = Math.floor(pixel.x / lightmapScale);
@@ -2272,7 +2268,7 @@ elements.specific_ray_emitter = {
                                 pixelMap[lx][ly].life = pixel.life
                                 pixelMap[lx][ly].maxLife = pixel.life
                             }
-                            if (["pointer", "flash", "explosion"].includes(pixel.rayElement)){
+                            if (["pointer", "flash", "explosion", "fire", "laser"].includes(pixel.rayElement)){
                                 pixelMap[lx][ly].color = pixel.color
                             }
                         } else if (!isEmpty(lx, ly, true)){
@@ -2676,21 +2672,30 @@ elements.super_heat_conductor = {
 }
 runEveryTick(function() { // global heat conductor
     // run any code after pixels are simulated per tick
-    var heatpixels = currentPixels.filter(function(pixelToCheck) {
+    let heatpixels = currentPixels.filter(function(pixelToCheck) {
         if (pixelToCheck.element == "global_heat_conductor"){
             return true;
         }
     })
-    for (var i = 0; i < heatpixels.length; i++) {
-        var newPixel = heatpixels[i];
-        var randomPixel = heatpixels[Math.floor(Math.random()*heatpixels.length)];
-        var avg = (randomPixel.temp + newPixel.temp)/2;
-        randomPixel.temp = avg;
-        newPixel.temp = avg;
+    let totals = {}
+    for (let i = 0; i < heatpixels.length; i++) {
+        let newPixel = heatpixels[i];
+        if (typeof totals[newPixel.channel] == "undefined"){totals[newPixel.channel] = [0,0]}
+        totals[newPixel.channel][0] += 1
+        totals[newPixel.channel][1] += newPixel.temp
+    }
+    for (let i = 0; i < heatpixels.length; i++) {
+        let newPixel = heatpixels[i];
+        newPixel.temp = totals[newPixel.channel][1]/totals[newPixel.channel][0]
     }
 })
 elements.global_heat_conductor = {
     color: "#55251e",
+    name: "Heat Portal",
+    onSelect: async function(){
+        let ans = await _nousersthingsprompt("What will the channel of this heat portal be?", 0)
+        currentElementProp = {channel: ans}
+    },
     behavior: behaviors.WALL,
     category: "solids",
     density: 10000,
@@ -3653,7 +3658,8 @@ elements.instant_wire = {
         let _hex = RGBToHex([_rgb2.r, _rgb2.g, _rgb2.b])
         drawSquare(ctx, _hex, pixel.x, pixel.y)
     },
-    updateOrder: 203847
+    updateOrder: 203847,
+    movable: false
 }
 elements.instant_wire_junction = {
     color: "#00685a",
@@ -3675,7 +3681,8 @@ elements.instant_wire_junction = {
                 chargePixel(spreadPixel)
             }
         }
-    }
+    },
+    movable: false
 }
 elements.iwifi_transmitter = {
     color: "#85ec8e",
@@ -3683,7 +3690,7 @@ elements.iwifi_transmitter = {
     name: "i-WiFi Transmitter",
     behavior: behaviors.WALL,
     category: "instant machines",
-    properties: {lastUpdate:0},
+    properties: {lastUpdate:0, cooldown: 0},
     onSelect: async function(){
         let ans = await _nousersthingsprompt("What should the channel of this transmitter be?", 0)
         if (typeof ans != "undefined"){
@@ -3704,7 +3711,8 @@ elements.iwifi_transmitter = {
             let newPixel = wifipixels[i];
             elements[newPixel.element].iCharge(newPixel, pixel)
         }
-    }
+    },
+    movable: false
 }
 elements.iwifi_receiver = {
     color: "#b4db6a",
@@ -3721,7 +3729,8 @@ elements.iwifi_receiver = {
     },
     iCharge: function(pixel, otherPixel){
         iChargeCooldown(pixel, 0)
-    }
+    },
+    movable: false
 }
 elements.ilamp = {
     color: "#ff0000",
@@ -3746,6 +3755,7 @@ elements.ilamp = {
         let _hex = RGBToHex([_rgb2.r, _rgb2.g, _rgb2.b])
         drawSquare(ctx, _hex, pixel.x, pixel.y)
     },
+    movable: false
 }
 elements.iswitch = {
     color: "#cd70e4",
@@ -3775,12 +3785,137 @@ elements.iswitch = {
             pixel.dir = [otherPixel.x-pixel.x, otherPixel.y-pixel.y]
         }
         if (otherPixel.x-pixel.x == pixel.dir[0] && otherPixel.y-pixel.y == pixel.dir[1]){pixel.iCharge = pixel.iCharge == 1 ? 0 : 1} 
-    }
+    },
+    movable: false
 }
 const oldShockTool = elements.shock.tool;
 elements.shock.tool = function(pixel){
     oldShockTool(pixel);
     if (elements[pixel.element].iConduct && pixel.cooldown <= 0){
         elements[pixel.element].iCharge(pixel, pixel)
+    }
+}
+elements.heat_pipe = {
+    color: "#25117a",
+    behavior: behaviors.WALL,
+    category: "machines",
+    movable: false,
+    onSelect: () => {logMessage("Draw a pipe, wait for walls to appear, then erase the exit hole.");},
+    onShiftSelect: async () => {
+        let ans1 = await _nousersthingsprompt("How much heat should be absorbed at once?", 5)
+        ans1 = isNaN(parseFloat(ans1)) ? 5 : parseFloat(ans1)
+        let ans2 = await _nousersthingsprompt("At what temperature should it stop trying to absorb heat from the input?", -273.15)
+        ans2 = isNaN(parseFloat(ans2)) ? 5 : parseFloat(ans2)
+        let ans3 = await _nousersthingsprompt("Please type true or false for yes or no. Should equalizing mode be on?")
+        ans3 = (ans3=="true") ? true : false
+        currentElementProp = {packetSize: ans1, cutoff: ans2, mode: ans3}
+    },
+    insulate: true,
+    tick: function(pixel){if (!pixel.stage && pixelTicks-pixel.start > 60) {
+			for (var i = 0; i < squareCoords.length; i++) {
+				var coord = squareCoords[i];
+				var x = pixel.x+coord[0];
+				var y = pixel.y+coord[1];
+				if (!isEmpty(x,y,true) && elements[pixelMap[x][y].element].movable) {
+					deletePixel(x,y)
+				}
+				if (isEmpty(x,y)) {
+					createPixel("pipe_wall",x,y);
+                    pixelMap[x][y].color = pixelColorPick(pixelMap[x][y],"#270f47");
+				}
+			}
+			pixel.color = pixelColorPick(pixel,"#140725");
+			pixel.stage = 1;
+		}
+		else if (pixel.stage === 1 && pixelTicks-pixel.start > 70) { //uninitialized
+			for (var i = 0; i < adjacentCoords.length; i++) {
+				var coord = adjacentCoords[i];
+				var x = pixel.x+coord[0];
+				var y = pixel.y+coord[1];
+				if (isEmpty(x,y)) {
+					pixel.stage = 2; //blue
+                    pixel.mode = -1;
+					pixel.color = pixelColorPick(pixel,"#2b0ba0");
+					break;
+				}
+			}
+		}
+		else if (pixel.stage > 1 && pixelTicks % 3 === pixel.stage-2) { //initialized
+			for (var i = 0; i < squareCoords.length; i++) {
+				var coord = squareCoords[i];
+				var x = pixel.x+coord[0];
+				var y = pixel.y+coord[1];
+				if (!isEmpty(x,y,true) && pixelMap[x][y].element === "heat_pipe") {
+					var newPixel = pixelMap[x][y];
+					if (newPixel.stage === 1) {
+						var newColor;
+						switch (pixel.stage) {
+							case 2: newPixel.stage = 3; newColor = "#760ba0"; break; //green
+							case 3: newPixel.stage = 4; newColor = "#4c0ba0"; break; //red
+							case 4: newPixel.stage = 2; newColor = "#2b0ba0"; break; //blue
+						}
+						newPixel.color = pixelColorPick(newPixel,newColor);
+					}
+				}
+			}
+			var moved = false;
+			shuffleArray(squareCoordsShuffle);
+			for (var i = 0; i < squareCoordsShuffle.length; i++) {
+				var coord = squareCoordsShuffle[i];
+				var x = pixel.x+coord[0];
+				var y = pixel.y+coord[1];
+				if (!isEmpty(x,y,true)) {
+					var newPixel = pixelMap[x][y];
+					if (newPixel.element === "heat_pipe") {
+						var nextStage;
+						switch (pixel.stage) {
+							case 2: nextStage = 4; break; //green
+							case 3: nextStage = 2; break; //red
+							case 4: nextStage = 3; break; //blue
+						}
+						if (pixel.cont && !newPixel.cont && newPixel.stage === nextStage) { //transfer to adjacent pipe
+							newPixel.cont = pixel.cont;
+							pixel.cont = null;
+							moved = true;
+							break;
+						}
+					}
+					else if (!pixel.cont && !elements[newPixel.element].insulate) { //suck up pixel
+						pixel.cont = (newPixel.temp - Math.max(newPixel.temp-(typeof pixel.packetSize != "undefined" ? pixel.packetSize : 5), (typeof pixel.cutoff != "undefined" ? pixel.cutoff : settings.abszero)));
+                        if (!pixel.mode && pixel.cont < 0){pixel.cont = null; break;}
+                        if (pixel.mode < 0){pixel.cont = null; break;}
+                        if (Math.round(3*Math.abs(pixel.cont)) < 1){pixel.cont = null; break;}
+                        pixel.cont = Math.round(4*pixel.cont)/4
+						newPixel.temp -= pixel.cont
+						moved = true;
+						break;
+					}
+				}
+			}
+			if (pixel.cont && !moved) { // move to same stage if none other
+				for (var i = 0; i < squareCoordsShuffle.length; i++) {
+					var coord = squareCoordsShuffle[i];
+					var x = pixel.x+coord[0];
+					var y = pixel.y+coord[1];
+                    if (!isEmpty(x, y, true) && pixelMap[x][y].element == "heat_pipe" && !pixelMap[x][y].cont){
+                        pixelMap[x][y].cont = pixel.cont
+                        pixel.cont = null
+                        break;
+                    }
+					if (!isEmpty(x,y,true) && !elements[pixelMap[x][y].element].insulate) {
+						pixelMap[x][y].temp += pixel.cont
+						pixel.cont = null;
+						break;
+					}
+				}
+			}
+		}
+	},
+    renderer: function(pixel, ctx){
+        drawDefault(ctx,pixel);
+		if (viewInfo[view].colorEffects !== true) return;
+        if (!pixel.cont) return;
+        const d = new Date()
+        drawSquare(ctx, "#FF0000", pixel.x, pixel.y, undefined, 0.3 + 0.7*((Math.sin(d.getTime()*0.002)+1)/2))
     }
 }
