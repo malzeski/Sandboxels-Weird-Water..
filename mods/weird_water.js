@@ -19,5 +19,5 @@ elements.weird_water = {
     density: 997,
     conduct: 0.04,
     stain: -0.5,
-    extinguish: false
+    extinguish: false,
 }
